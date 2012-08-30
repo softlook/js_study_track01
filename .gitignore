@@ -1,15 +1,27 @@
-lib-cov
-*.seed
-*.log
-*.csv
-*.dat
-*.out
-*.pid
-*.gz
+# ignore local node modules
+node_modules/
 
-pids
-logs
-results
 
-node_modules
-npm-debug.log
+# ignore logs
+logs/
+
+# ignore runtime.json
+runtime.json
+
+test/
+
+# ignore all object files
+*.o
+Makefile
+
+# ignore backup/temp files
+*.bak
+*.tmp
+*.temp
+
+
+# ignore all build folder
+build/
+
+# ignore all temp folder
+temp/

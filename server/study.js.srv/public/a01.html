@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>JavaScript Study : Example-01</title>
+    <link rel="stylesheet" href="./css/bootstrap.css">
+
+    <script src="./js/jquery_1.7.2.min.js"></script>
+    <script src="./js/bootstrap.js"></script>
+    <script src="./js/bootstrap-alert.js"></script>
+    <script src="./js/bootstrap-button.js"></script>
+    <script src="./js/bootstrap-dropdown.js"></script>
+    <script src="./js/bootstrap-modal.js"></script>
+    <script src="./js/bootstrap-popover.js"></script>
+    <script src="./js/bootstrap-tooltip.js"></script>
+  
+    <script type="text/javascript" src="./a01.js"></script>
+  </head>
+  <body data-offset="100">
+    <div class="navbar">
+      <div class="navbar-inner">
+        <div class="container">
+          <a class="brand" href="./main.html">JavaScript Study</a>
+          <div class="nav-collapse ">
+            <ul class="nav">
+              <li class=""><a href="./intro.html">Intro.</a></li>
+              <li class="dropdown">
+                <a href="#" class="dropdown-toggle" data-toggle="dropdown">Example-01 <b class="caret"></b></a>
+                <ul class="dropdown-menu">
+                  <li><a href="./example01/a01.html">Weather</a></li>
+                  <li><a href="./example01/a02.html">Step 2</a></li>
+                  <li><a href="./example01/a01.html">Step 3</a></li>
+                </ul>
+              </li>
+              <li class="dropdown">
+                <a href="#" class="dropdown-toggle" data-toggle="dropdown">Example-02 <b class="caret"></b></a>
+                <ul class="dropdown-menu">
+                </ul>
+              </li>
+              <li class="dropdown">
+                <a href="#" class="dropdown-toggle" data-toggle="dropdown">Example-03 <b class="caret"></b></a>
+                <ul class="dropdown-menu">
+                </ul>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="container">
+      <div class="row">
+        <div class="span3">
+          <h3>Continents <button id="u-btn-refresh" type="button" class="btn"><i class="icon-refresh"></i></button></h3>
+          <ul id="u-continents">
+          </ul>
+        </div>
+        <div class="span6 offset1">
+          <form class="form-search well">
+            <div class="input-append">
+              <input id="keyword" type="text" class="span4 search-query" placeholder="Type a name of a place"><button id="u-btn-search" type="submit" class="btn btn-primary">Find</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
