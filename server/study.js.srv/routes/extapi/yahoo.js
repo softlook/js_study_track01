@@ -16,8 +16,7 @@ var YWS = YWS || {};
 		YWS.options.url = "http://query.yahooapis.com/v1/public/yql?format=json&q=" + req.query;
 
 		YWS.xget.get(YWS.options, function(err, data) {
-			//console.log("REQUEST => " + data.url);
-			console.log("REQ => " + JSON.stringify(data));
+			console.log("REQ => " + ((undefined !== data.url && null != data.url) ? data.url : "---"));
 
 			if (err) req.fail(err)
 			else req.success(JSON.parse(data.buffer));
@@ -154,10 +153,7 @@ exports.geo = {
 	},
 
 	places: function(nm, lo, callback) {
-		if (undefined === nm) {
-			callback({});
-			return;
-		}
+		console.log("trying ... with[" + nm + "]");
 
 		var query = "select%20*%20from%20geo.places%20where%20text%3D%22" + nm + "%22";
 
@@ -171,11 +167,9 @@ exports.geo = {
 				for (var i = 0; i < data.query.count; i++) {
 					var p = (1 < data.query.count) ? data.query.results.place[i] : data.query.results.place;
 
-					var addr = (undefined !== p.admin1 && null != p.admin1) ? p.admin1 : (
-							(undefined !== p.admin2 && null != p.admin2) ? (", " + p.admin2) : (
-									(undefined !== p.admin3 && null != p.admin3) ? (", " + p.admin3) : ""
-								)
-						)
+					var addr = ((undefined !== p.admin1 && null != p.admin1) ? p.admin1.content : "");
+					addr += ((undefined !== p.admin2 && null != p.admin2) ? (", " + p.admin2.content) : "");
+					addr += ((undefined !== p.admin3 && null != p.admin3) ? (", " + p.admin3.content) : "");
 
 					places.push({
 						name: p.name,
