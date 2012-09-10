@@ -53,18 +53,41 @@ function MODEL() {
 
 	__self.data = [];
 
+	__self.changeListners = { continents: [], countries: [], states: [] };
+
+	// {{ Proxy Callbacks
+
+	__self.callbackContinents = function(list, argx) {
+		this.set_continents(list);
+	};
+
+	__self.callbackCountries = function(list, argx) {
+		this.set_countries(argx.continent, list);
+	};
+
+	__self.callbackStates = function(list, argx) {
+		this.set_states(argx.continent, argx.country, list);
+	};
+
+	// }} Proxy Callbacks
+
 	// {{ Data Operation
 
-	__self.set_continents = function(list) {
+	set_continents = function(list) {
 		// update continents
 		__self.data = [];
 
 		for (var i = 0; i < list.length; i++) {
 			__self.data.push({ nm: list[i], countries: null });
 		}
+
+		// fire change event
+		for (var x = 0; x < __self.changeListners.continents.length; x++) {
+			__self.changeListners.continents[x](list);
+		}
 	};
 
-	__self.set_countries = function(continent, list) {
+	set_countries = function(continent, list) {
 		// update continents
 		var c = __self.data[continent];
 
@@ -75,9 +98,14 @@ function MODEL() {
 		for (var i = 0; i < list.length; i++) {
 			c.countries.push({ nm: list[i], states: null });
 		}
+
+		// fire change event
+		for (var x = 0; x < __self.changeListners.countries.length; x++) {
+			__self.changeListners.countries[x](continent, list);
+		}
 	};
 
-	__self.set_states = function(continent, country, list) {
+	set_states = function(continent, country, list) {
 		// update continents
 		var c;
 
@@ -87,6 +115,11 @@ function MODEL() {
 
 		for (var i = 0; i < list.length; i++) {
 			c.states.push(list[i]);
+		}
+
+		// fire change event
+		for (var x = 0; x < __self.changeListners.states.length; x++) {
+			__self.changeListners.states[x](continent, country, list);
 		}
 	};
 
@@ -109,6 +142,22 @@ function MODEL() {
 
 	// }} Data Operation
 
+	// {{ Event Handling
+
+	__self.continentChanged = function(f) {
+		__self.changeListners.continents.push(f);
+	};
+
+	__self.countryChanged = function(f) {
+		__self.changeListners.countries.push(f);
+	};
+
+	__self.stateChanged = function(f) {
+		__self.changeListners.states.push(f);
+	};
+
+	// }}
+
 	return __self;
 }
 
@@ -117,9 +166,9 @@ var model = new MODEL();
 function UI() {
 	var __self = {};
 
-	// {{ Render Tree
+	// {{ Register Event Callback - data changed
 
-	__self.renderContinents = function(names) {
+	model.continentChanged(function(names) {
 		var t = $("#u-continents");
 
 		t.html(""); // clear list
@@ -130,9 +179,9 @@ function UI() {
 			t.append("<li><a href='javascript:action.findCountries(" + i + ", \"" + nm + "\")'>" + nm + "</a>" +
 				"<ul id='u-cont-" + i + "' style='display:none'></ul></li>");
 		}
-	};
+	});
 
-	__self.renderCountries = function(continent, countries) {
+	model.countryChanged(function(continent, countries) {
 		var t = $("#u-cont-" + continent);
 
 		t.html(""); // clear list
@@ -143,9 +192,9 @@ function UI() {
 			t.append("<li><a href='javascript:action.findStates(" + continent + ", " + i + ", \"" + nm + "\")'>" + nm + "</a>" +
 				"<ul id='u-st-" + continent + "-" + i + "' style='display:none'></ul></li>");
 		}
-	};
+	});
 
-	__self.renderStates = function(continent, country, states) {
+	model.stateChanged(function(continent, country, states) {
 		var t = $("#u-st-" + continent + "-" + country);
 
 		t.html(""); // clear list
@@ -155,13 +204,13 @@ function UI() {
 
 			t.append("<li><a href='javascript:action.showWeather(\"" + s.woeid + "\")'>" + s.name + "</a></li>");
 		}
-	};
+	});
 
-	// }} Render Tree
+	// }} Register Event Callback - data changed
 
 	// {{ Draw
 
-	__self.showTree = function(continent, country) {
+	__self.toggleTree = function(continent, country) {
 		var t = ((undefined === country) ? $("#u-cont-" + continent) : $("#u-st-" + continent + "-" + country));
 		t.css("display" , (("none" == t.css("display")) ? "block" : "none"));
 	};
@@ -178,30 +227,21 @@ function ACTION() {
 
 	__self.findContinents = function() {
 		if (false === model.has_continents())
-			proxy.continents(name, {}, function(list, argx) {
-				model.set_continents(list);
-				ui.renderContinents(list);
-			});
+			proxy.continents(name, {}, model.callbackContinents);
 	};
 
 	__self.findCountries = function(continent, name) {
-		ui.showTree(continent);
+		ui.toggleTree(continent);
 
 		if (false === model.has_countries(continent))
-			proxy.countries(name, { continent: continent }, function(list, argx) {
-				model.set_countries(argx.continent, list);
-				ui.renderCountries(argx.continent, list);
-			});
+			proxy.countries(name, { continent: continent }, model.callbackCountries);
 	};
 
 	__self.findStates = function(continent, country, name) {
-		ui.showTree(continent, country);
+		ui.toggleTree(continent, country);
 
 		if (false === model.has_states(continent, country))
-			proxy.states(name, { continent: continent, country: country }, function(list, argx) {
-				model.set_states(argx.continent, argx.country, list);
-				ui.renderStates(argx.continent, argx.country, list);
-			});
+			proxy.states(name, { continent: continent, country: country }, model.callbackStates);
 	};
 
 	__self.findPlace = function(place) {
