@@ -43,10 +43,22 @@ function PROXY() {
 		});
 	};
 
+	__self.places = function(name, argx, callback) {
+		$.ajax({
+			type: "GET",
+			url: "/extapi/geo/places/" + name,
+			dataType: "json",
+			success: function(data) {
+				callback(data.places, argx);
+			},
+			error: function() {
+				alert("Loading has failed : find result(s)");
+			}
+		});
+	};
+
 	return __self;
 }
-
-var proxy = new PROXY();
 
 function MODEL() {
 	var __self = {};
@@ -161,52 +173,56 @@ function MODEL() {
 	return __self;
 }
 
-var model = new MODEL();
-
 function UI() {
 	var __self = {};
 
-	// {{ Register Event Callback - data changed
+	var _model = {};
 
-	model.continentChanged(function(names) {
-		var t = $("#u-continents");
+	__self.set_model = function(m) {
+		_model = m;
 
-		t.html(""); // clear list
+		// {{ Register Event Callback - data changed
 
-		for (var i = 0; i < names.length; i++) {
-			var nm = names[i];
+		_model.continentChanged(function(names) {
+			var t = $("#u-continents");
 
-			t.append("<li><a href='javascript:action.findCountries(" + i + ", \"" + nm + "\")'>" + nm + "</a>" +
-				"<ul id='u-cont-" + i + "' style='display:none'></ul></li>");
-		}
-	});
+			t.html(""); // clear list
 
-	model.countryChanged(function(continent, countries) {
-		var t = $("#u-cont-" + continent);
+			for (var i = 0; i < names.length; i++) {
+				var nm = names[i];
 
-		t.html(""); // clear list
+				t.append("<li><a href='javascript:action.findCountries(" + i + ", \"" + nm + "\")'>" + nm + "</a>" +
+					"<ul id='u-cont-" + i + "' style='display:none'></ul></li>");
+			}
+		});
 
-		for (var i = 0; i < countries.length; i++) {
-			var nm = countries[i];
+		_model.countryChanged(function(continent, countries) {
+			var t = $("#u-cont-" + continent);
 
-			t.append("<li><a href='javascript:action.findStates(" + continent + ", " + i + ", \"" + nm + "\")'>" + nm + "</a>" +
-				"<ul id='u-st-" + continent + "-" + i + "' style='display:none'></ul></li>");
-		}
-	});
+			t.html(""); // clear list
 
-	model.stateChanged(function(continent, country, states) {
-		var t = $("#u-st-" + continent + "-" + country);
+			for (var i = 0; i < countries.length; i++) {
+				var nm = countries[i];
 
-		t.html(""); // clear list
-		
-		for (var i = 0; i < states.length; i++) {
-			var s = states[i];
+				t.append("<li><a href='javascript:action.findStates(" + continent + ", " + i + ", \"" + nm + "\")'>" + nm + "</a>" +
+					"<ul id='u-st-" + continent + "-" + i + "' style='display:none'></ul></li>");
+			}
+		});
 
-			t.append("<li><a href='javascript:action.showWeather(\"" + s.woeid + "\")'>" + s.name + "</a></li>");
-		}
-	});
+		_model.stateChanged(function(continent, country, states) {
+			var t = $("#u-st-" + continent + "-" + country);
 
-	// }} Register Event Callback - data changed
+			t.html(""); // clear list
+			
+			for (var i = 0; i < states.length; i++) {
+				var s = states[i];
+
+				t.append("<li><a href='javascript:action.showWeather(\"" + s.woeid + "\")'>" + s.name + "</a></li>");
+			}
+		});
+
+		// }} Register Event Callback - data changed
+	};
 
 	// {{ Draw
 
@@ -215,15 +231,40 @@ function UI() {
 		t.css("display" , (("none" == t.css("display")) ? "block" : "none"));
 	};
 
+	__self.renderFindPlacesResult = function(places) {
+		var t = $("#u-findplace-result");
+
+		t.html(""); // clear list
+
+		for (var i = 0; i < places.length; i++) {
+			var s = places[i];
+
+			t.append("<tr>" +
+							"<td><button id='u-fp-" + s.woeid + "' class='btn btn-mini add-watch-place'><i class='icon-plus'></i></button></td>" +
+							"<td>" + s.country + "</td>" +
+							"<td>" + s.province + "</td>" +
+							"<td>" + s.name + "</td>" +
+							"</tr>");
+
+			$("#u-fp-" + s.woeid).click(function(e) {
+				action.addWatchPlace({ woeid: '', name: '', country: '', province: '' });
+			});
+		}
+	};
+
+	__self.renderWatchPlace = function() {
+		alert("[debug] render watch places");
+	};
+
 	// }} Draw
 
 	return __self;
 }
 
-var ui = new UI();
-
-function ACTION() {
+var action = (function(model, ui, proxy) {
 	var __self = {};
+
+	ui.set_model(model);
 
 	__self.findContinents = function() {
 		if (false === model.has_continents())
@@ -245,7 +286,16 @@ function ACTION() {
 	};
 
 	__self.findPlace = function(place) {
-		alert("[debug] try to find place '" + place + "'");
+		//alert("[debug] try to find place '" + place + "'");
+		proxy.places(place, { }, ui.renderFindPlacesResult);
+	};
+
+	__self.addWatchPlace = function(place) {
+		alert("[debug] try to add place '" + place.name + "'");
+	};
+
+	__self.updateWeather = function() {
+		ui.renderWatchPlace();
 	};
 
 	__self.showWeather = function(woeid) {
@@ -253,9 +303,7 @@ function ACTION() {
 	};
 
 	return __self;
-}
-
-var action = new ACTION();
+})(new MODEL(), new UI(), new PROXY());
 
 $(document).ready(function() {
 	$("#u-btn-refresh").click(function() {
@@ -264,5 +312,13 @@ $(document).ready(function() {
 
 	$("#u-btn-search").click(function() {
 		action.findPlace($("#keyword").val());
+	});
+
+	$("#u-btn-addplace").click(function() {
+		$("#modalAddPlace").modal();
+	});
+
+	$("#u-btn-updatewatch").click(function() {
+		action.updateWeather();
 	});
 });
