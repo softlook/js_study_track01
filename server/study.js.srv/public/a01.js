@@ -64,8 +64,9 @@ function MODEL() {
 	var __self = {};
 
 	__self.data = [];
+	var watched = {};
 
-	__self.changeListners = { continents: [], countries: [], states: [] };
+	__self.changeListners = { continents: [], countries: [], states: [], watches: [] };
 
 	// {{ Proxy Callbacks
 
@@ -135,6 +136,19 @@ function MODEL() {
 		}
 	};
 
+	__self.add_watchplace = function(list) {
+		for (var i = 0; i < list.length; i++) {
+			var place = list[i];
+
+			watches[place.woeid] = place;
+		}
+		
+		// fire change event
+		for (var x = 0; x < __self.changeListners.watches.length; x++) {
+			__self.changeListners.watches[x](watches);
+		}
+	};
+
 	__self.has_continents = function() {
 		return (0 < __self.data.length) ? true : false;
 	};
@@ -166,6 +180,10 @@ function MODEL() {
 
 	__self.stateChanged = function(f) {
 		__self.changeListners.states.push(f);
+	};
+
+	__self.watchChanged = function(f) {
+		__self.changeListners.watches.push(f);
 	};
 
 	// }}
@@ -221,6 +239,10 @@ function UI() {
 			}
 		});
 
+		_model.watchChanged(function(places) {
+			__self.renderWatchPlace(places);
+		});
+
 		// }} Register Event Callback - data changed
 	};
 
@@ -246,14 +268,27 @@ function UI() {
 							"<td>" + s.name + "</td>" +
 							"</tr>");
 
-			$("#u-fp-" + s.woeid).click(function(e) {
-				action.addWatchPlace({ woeid: '', name: '', country: '', province: '' });
+			$("#u-fp-" + s.woeid).click({ woeid: s.woeid, name: s.name, country: s.country, province: s.province }, function(e) {
+				action.addWatchPlace(e.data);
 			});
 		}
 	};
 
-	__self.renderWatchPlace = function() {
-		alert("[debug] render watch places");
+	__self.renderWatchPlace = function(places) {
+		var t = $("#u-watch-place");
+
+		t.html(""); // clear list
+
+		for (var i = 0; i < places.length; i++) {
+			var s = places[i];
+
+			t.append("<tr>" +
+							"<td>" + s.country + "/" + s.province + "</td>" +
+							"<td>" + s.name + "</td>" +
+							"<td>" + "날씨" + "</td>" +
+							"<td><button woeid='" + s.woeid + "' class='btn btn-mini'><i class='icon-trash icon-white'></i></button></td>" +
+							"</tr>");
+		}
 	};
 
 	// }} Draw
@@ -286,12 +321,11 @@ var action = (function(model, ui, proxy) {
 	};
 
 	__self.findPlace = function(place) {
-		//alert("[debug] try to find place '" + place + "'");
 		proxy.places(place, { }, ui.renderFindPlacesResult);
 	};
 
 	__self.addWatchPlace = function(place) {
-		alert("[debug] try to add place '" + place.name + "'");
+		model.add_watchplace([place]);
 	};
 
 	__self.updateWeather = function() {
