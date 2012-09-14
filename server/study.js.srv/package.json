@@ -9,7 +9,6 @@
     "express": "3.0.0beta7",
     "jade": "*",
     "config": "*",
-    "http-get": "*",
-    "winston": "*"
+    "http-get": "*"
   }
 }
