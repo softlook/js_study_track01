@@ -60,13 +60,28 @@ function PROXY() {
 	return __self;
 }
 
+var EVENT = {
+	listeners : {},
+	on : function(evt, delegate) {
+		EVENT.listeners[evt] = EVENT.listeners[evt] || [];
+
+		EVENT.listeners[evt].push(delegate);
+	},
+	emit : function(evt, data) {
+		var e = EVENT.listeners[evt];
+
+		if (undefined !== e && 0 < e.length) {
+			for (var i = 0; i < e.length; i++)
+				setTimeout(e[i](data), 0);
+		}
+	}
+};
+
 function MODEL() {
 	var __self = {};
 
 	__self.data = [];
-	var watched = {};
-
-	__self.changeListners = { continents: [], countries: [], states: [], watches: [] };
+	var places = {};
 
 	// {{ Proxy Callbacks
 
@@ -94,10 +109,7 @@ function MODEL() {
 			__self.data.push({ nm: list[i], countries: null });
 		}
 
-		// fire change event
-		for (var x = 0; x < __self.changeListners.continents.length; x++) {
-			__self.changeListners.continents[x](list);
-		}
+		EVENT.emit("continentChanged", { continents: list });
 	};
 
 	set_countries = function(continent, list) {
@@ -112,10 +124,7 @@ function MODEL() {
 			c.countries.push({ nm: list[i], states: null });
 		}
 
-		// fire change event
-		for (var x = 0; x < __self.changeListners.countries.length; x++) {
-			__self.changeListners.countries[x](continent, list);
-		}
+		EVENT.emit("countryChanged", { continent: continent, countries: list });
 	};
 
 	set_states = function(continent, country, list) {
@@ -130,23 +139,37 @@ function MODEL() {
 			c.states.push(list[i]);
 		}
 
-		// fire change event
-		for (var x = 0; x < __self.changeListners.states.length; x++) {
-			__self.changeListners.states[x](continent, country, list);
-		}
+		EVENT.emit("stateChanged", { continent: continent, country: country, states: list });
 	};
 
 	__self.add_watchplace = function(list) {
 		for (var i = 0; i < list.length; i++) {
 			var place = list[i];
 
-			watches[place.woeid] = place;
+			places[place.woeid] = place;
 		}
 		
-		// fire change event
-		for (var x = 0; x < __self.changeListners.watches.length; x++) {
-			__self.changeListners.watches[x](watches);
+		EVENT.emit("watchChanged", { places: places });
+	};
+
+	__self.add_watchplace = function(list) {
+		for (var i = 0; i < list.length; i++) {
+			var place = list[i];
+
+			places[place.woeid] = place;
 		}
+		
+		EVENT.emit("watchChanged", { places: places });
+	};
+
+	__self.remove_watchplace = function(list) {
+		for (var i = 0; i < list.length; i++) {
+			var woeid = list[i];
+			
+			places[woeid] && (delete places[woeid]);
+		}
+		
+		EVENT.emit("watchChanged", { places: places });
 	};
 
 	__self.has_continents = function() {
@@ -168,26 +191,6 @@ function MODEL() {
 
 	// }} Data Operation
 
-	// {{ Event Handling
-
-	__self.continentChanged = function(f) {
-		__self.changeListners.continents.push(f);
-	};
-
-	__self.countryChanged = function(f) {
-		__self.changeListners.countries.push(f);
-	};
-
-	__self.stateChanged = function(f) {
-		__self.changeListners.states.push(f);
-	};
-
-	__self.watchChanged = function(f) {
-		__self.changeListners.watches.push(f);
-	};
-
-	// }}
-
 	return __self;
 }
 
@@ -196,55 +199,56 @@ function UI() {
 
 	var _model = {};
 
-	__self.set_model = function(m) {
-		_model = m;
+	// {{ Register Event Callback - data changed
+	EVENT.on("continentChanged", function(data) {
+		var names = data.continents;
+		var t = $("#u-continents");
 
-		// {{ Register Event Callback - data changed
+		t.html(""); // clear list
 
-		_model.continentChanged(function(names) {
-			var t = $("#u-continents");
+		for (var i = 0; i < names.length; i++) {
+			var nm = names[i];
 
-			t.html(""); // clear list
+			t.append("<li><a href='javascript:action.findCountries(" + i + ", \"" + nm + "\")'>" + nm + "</a>" +
+				"<ul id='u-cont-" + i + "' style='display:none'></ul></li>");
+		}
+	});
 
-			for (var i = 0; i < names.length; i++) {
-				var nm = names[i];
+	EVENT.on("countryChanged", function(data) {
+		var continent = data.continent;
+		var countries = data.countries;
+		var t = $("#u-cont-" + continent);
 
-				t.append("<li><a href='javascript:action.findCountries(" + i + ", \"" + nm + "\")'>" + nm + "</a>" +
-					"<ul id='u-cont-" + i + "' style='display:none'></ul></li>");
-			}
-		});
+		t.html(""); // clear list
 
-		_model.countryChanged(function(continent, countries) {
-			var t = $("#u-cont-" + continent);
+		for (var i = 0; i < countries.length; i++) {
+			var nm = countries[i];
 
-			t.html(""); // clear list
+			t.append("<li><a href='javascript:action.findStates(" + continent + ", " + i + ", \"" + nm + "\")'>" + nm + "</a>" +
+				"<ul id='u-st-" + continent + "-" + i + "' style='display:none'></ul></li>");
+		}
+	});
 
-			for (var i = 0; i < countries.length; i++) {
-				var nm = countries[i];
+	EVENT.on("stateChanged", function(data) {
+		var continent = data.continent;
+		var country = data.country;
+		var states = data.states;
+		var t = $("#u-st-" + continent + "-" + country);
 
-				t.append("<li><a href='javascript:action.findStates(" + continent + ", " + i + ", \"" + nm + "\")'>" + nm + "</a>" +
-					"<ul id='u-st-" + continent + "-" + i + "' style='display:none'></ul></li>");
-			}
-		});
+		t.html(""); // clear list
+		
+		for (var i = 0; i < states.length; i++) {
+			var s = states[i];
 
-		_model.stateChanged(function(continent, country, states) {
-			var t = $("#u-st-" + continent + "-" + country);
+			t.append("<li><a href='javascript:action.showWeather(\"" + s.woeid + "\")'>" + s.name + "</a></li>");
+		}
+	});
 
-			t.html(""); // clear list
-			
-			for (var i = 0; i < states.length; i++) {
-				var s = states[i];
+	EVENT.on("watchChanged", function(data) {
+		__self.renderWatchPlace(data.places);
+	});
 
-				t.append("<li><a href='javascript:action.showWeather(\"" + s.woeid + "\")'>" + s.name + "</a></li>");
-			}
-		});
-
-		_model.watchChanged(function(places) {
-			__self.renderWatchPlace(places);
-		});
-
-		// }} Register Event Callback - data changed
-	};
+	// }} Register Event Callback - data changed
 
 	// {{ Draw
 
@@ -279,15 +283,19 @@ function UI() {
 
 		t.html(""); // clear list
 
-		for (var i = 0; i < places.length; i++) {
-			var s = places[i];
+		for (var x in places) {
+			var s = places[x];
 
-			t.append("<tr>" +
+			t.append("<tr woeid='" + s.woeid + "'>" +
 							"<td>" + s.country + "/" + s.province + "</td>" +
 							"<td>" + s.name + "</td>" +
 							"<td>" + "날씨" + "</td>" +
-							"<td><button woeid='" + s.woeid + "' class='btn btn-mini'><i class='icon-trash icon-white'></i></button></td>" +
+							"<td><button id='u-wp-" + s.woeid + "' class='btn btn-danger btn-mini'><i class='icon-trash icon-white'></i></button></td>" +
 							"</tr>");
+
+			$("#u-wp-" + s.woeid).click({ woeid: s.woeid }, function(e) {
+				action.removeWatchPlace(e.data.woeid);
+			});
 		}
 	};
 
@@ -298,8 +306,6 @@ function UI() {
 
 var action = (function(model, ui, proxy) {
 	var __self = {};
-
-	ui.set_model(model);
 
 	__self.findContinents = function() {
 		if (false === model.has_continents())
@@ -326,6 +332,10 @@ var action = (function(model, ui, proxy) {
 
 	__self.addWatchPlace = function(place) {
 		model.add_watchplace([place]);
+	};
+
+	__self.removeWatchPlace = function(woeid) {
+		model.remove_watchplace([woeid]);
 	};
 
 	__self.updateWeather = function() {

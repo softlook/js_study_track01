@@ -4,7 +4,7 @@ var YWS = YWS || {};
 	YWS.xget = require("http-get");
 	YWS.xget.setMaxSockets(50);
 
-	YWS.options = {}
+	YWS.options = {};
 
 	if(process.env.http_proxy){
 		var p = url.parse(process.env.http_proxy);
@@ -16,25 +16,24 @@ var YWS = YWS || {};
 		YWS.options.url = "http://query.yahooapis.com/v1/public/yql?format=json&q=" + req.query;
 
 		YWS.xget.get(YWS.options, function(err, data) {
-			//console.log("REQUEST => " + data.url);
-			console.log("REQ => " + JSON.stringify(data));
+			//console.log("REQ => " + JSON.stringify(data));
 
-			if (err) req.fail(err)
+			if (err) req.fail(err);
 			else req.success(JSON.parse(data.buffer));
 		});
-	}
+	};
 
 	YWS.execute2 = function(req) {
 		YWS.options.url = req.url;
 
 		YWS.xget.get(YWS.options, function(err, data) {
-			console.log("REQUEST => " + data.url);
+			//console.log("REQUEST => " + data.url);
 
-			if (err) req.fail(err)
+			if (err) req.fail(err);
 			else req.success(JSON.parse(data.buffer));
 		});
-	}
-}());
+	};
+})();
 
 exports.weather = {
 	forecast: function(woeid, callback) {
@@ -56,14 +55,14 @@ exports.weather = {
 			}
 		});
 	}
-}
+};
 
 exports.geo = {
 	continents: function(nm, lo, callback) {
 		var query = "select%20name%20from%20geo.continents";
 
 		var where = (undefined !== nm) ? "name%3D%22" + nm + "%22" : "";
-		if (undefined != lo) {
+		if (undefined !== lo) {
 			where += (0 < where.length) ? "%20and%20" : "";
 			where += "lang%3D%22" + lo + "%22";
 		}
@@ -92,7 +91,7 @@ exports.geo = {
 		var query = "select%20name%20from%20geo.countries";
 
 		var where = (undefined !== nm) ? "place%3D%22" + nm + "%22" : "";
-		if (undefined != lo) {
+		if (undefined !== lo) {
 			where += (0 < where.length) ? "%20and%20" : "";
 			where += "lang%3D%22" + lo + "%22";
 		}
@@ -121,7 +120,7 @@ exports.geo = {
 		var query = "select%20name%20,woeid%20from%20geo.states";
 
 		var where = (undefined !== nm) ? "place%3D%22" + nm + "%22" : "";
-		if (undefined != lo) {
+		if (undefined !== lo) {
 			where += (0 < where.length) ? "%20and%20" : "";
 			where += "lang%3D%22" + lo + "%22";
 		}
@@ -171,11 +170,11 @@ exports.geo = {
 				for (var i = 0; i < data.query.count; i++) {
 					var p = (1 < data.query.count) ? data.query.results.place[i] : data.query.results.place;
 
-					var addr = (undefined !== p.admin1 && null != p.admin1) ? p.admin1 : (
-							(undefined !== p.admin2 && null != p.admin2) ? (", " + p.admin2) : (
-									(undefined !== p.admin3 && null != p.admin3) ? (", " + p.admin3) : ""
+					var addr = (undefined !== p.admin1 && null !== p.admin1) ? p.admin1.content : (
+							(undefined !== p.admin2 && null !== p.admin2) ? (", " + p.admin2.content) : (
+									(undefined !== p.admin3 && null !== p.admin3) ? (", " + p.admin3.content) : ""
 								)
-						)
+						);
 
 					places.push({
 						name: p.name,
@@ -183,7 +182,7 @@ exports.geo = {
 						country: p.country.content,
 						province: addr
 					});
-				};
+				}
 
 				callback(places);
 			},
@@ -193,4 +192,4 @@ exports.geo = {
 			}
 		});
 	}
-}
+};
